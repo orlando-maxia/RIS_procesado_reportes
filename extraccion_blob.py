@@ -14,7 +14,7 @@ import win32com.client
 from docx import Document
 from io import BytesIO
 from json import loads
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 # Función para extraer texto de un documento .doc utilizando pywin32
 def extract_text_from_doc(blob_data):
@@ -32,14 +32,14 @@ def extract_text_from_doc(blob_data):
         word = win32com.client.Dispatch("Word.Application")
         word.Visible = False  # No mostrar la interfaz de Word
         doc = word.Documents.Open(temp_file_path)
-        text = doc.Content.Text  # Extraer todo el texto del documento
+        text_content = doc.Content.Text  # Extraer todo el texto del documento
         doc.Close()
         word.Quit()
 
         # Eliminar el archivo temporal después de la conversión
         os.remove(temp_file_path)
 
-        return text.strip()  # Limpiar espacios innecesarios
+        return text_content.strip()  # Limpiar espacios innecesarios
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -57,7 +57,8 @@ ENGINE = create_engine(
 )
 
 
-QUERY = """
+QUERY = text(
+    """
  SELECT
     sw.PATIENT_PERSON_KEY,
     pil.PATIENT_ID AS CEDULA,
@@ -89,6 +90,7 @@ WHERE
     AND sw.RP_CODE_KEY IN ('12150', '12156', '12149', '12151', '12154')
     AND s.DESCRIPTION IN ('US - Renal')
 """
+)
 
 
 start_date = datetime(2014, 7, 1, 0, 0, 0)
@@ -107,7 +109,7 @@ while current_start <= final_end_date:
         f"Procesando bloque: {current_start:%Y-%m-%d}"
         f" -> {current_end:%Y-%m-%d}"
     )
-    chunk_df = pd.read_sql(
+    chunk_df = pd.read_sql_query(
         QUERY,
         ENGINE,
         params={
