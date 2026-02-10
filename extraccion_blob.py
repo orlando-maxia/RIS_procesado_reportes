@@ -122,6 +122,7 @@ while current_start <= final_end_date:
 
 df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 if not df.empty:
+    df.columns = [col.upper() for col in df.columns]
     df.drop_duplicates(subset=["CEDULA", "ID_ESTUDIO_RIS"], keep="last", inplace=True)
 
 print(df.head(20))
